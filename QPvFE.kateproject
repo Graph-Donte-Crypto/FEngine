@@ -1,0 +1,10 @@
+{
+	"name": "QPvFE",
+	"files": [
+		{
+			"directory": "D:\_MPS\_CPP\__Projects\__QPvFE",
+			"filters": ["*.cpp", "*.h"],
+			"recursive": 1
+		}
+	]
+}

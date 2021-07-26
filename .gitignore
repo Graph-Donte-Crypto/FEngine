@@ -1,0 +1,5 @@
+*.exe
+CppCheckResults.xml
+bin
+obj
+result.txt
