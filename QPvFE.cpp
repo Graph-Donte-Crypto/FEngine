@@ -1,3 +1,4 @@
+#include "UseFull/SFMLUp/View.hpp"
 #include <queue>
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
@@ -1085,7 +1086,7 @@ public:
 		BaseGui::drawSelf();
 
 		Drawer.drawLine(
-			this,
+			*this,
 			Line<2>({0, ctrlm_paddind}, {codir.size()[0], ctrlm_paddind}),
 			color_outline
 		);
@@ -1170,7 +1171,7 @@ void initLevel1() {
 	block = new Block(Codir<2>({0, -500}, {50, 900}));
 	block->addDefault();
 
-    CurrentView.followUp(&(p1->center));
+	WorldView.followUp(p1->center);
 }
 
 bool mainLoop(MainLoopType loopType) {
@@ -1232,13 +1233,13 @@ bool mainLoop(MainLoopType loopType) {
 		if (Event.KeyPressed[sf::Keyboard::F1])
 			show_debug = !show_debug;
 
-		//View processor
-		CurrentView.step();
+		WorldView.update();
 
 		//Clear screen
 		window.clear(sf::Color::Black);
 
 		//Draw Processor
+		WorldView.use();
 		AStack.stepDraw();
 		for (size_t i = 0; i < 100; i++) Drawer.drawText(i*50, {(double)(i*50), 500});
 
@@ -1293,7 +1294,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 			if (state.active) state.pause = mainLoop(MainLoopType::resume);
 			else state.pause = mainLoop(MainLoopType::init);
 			state.active = true;
-			XY current_center = CurrentView.currentCenter();
+			XY current_center = GuiView.current_view.center();
 			for (size_t i = 0; i < AStack.action_win_set.length; i++)
 				AStack.action_win_set[i]->moveRelative(current_center - state.current_view);
 			state.current_view = current_center;
@@ -1381,15 +1382,17 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		//Action processor
 		if (!pause) AStack.stepAction();
         AStack.stepActionWin();
-		//View processor
-		CurrentView.step();
+
+		WorldView.update();
 
 		//Clear screen
 		window.clear(sf::Color::Green);
 
 		//Draw Processor
-
+		WorldView.use();
 		AStack.stepDraw();
+
+		GuiView.use();
 		AStack.stepDrawWin();
 
 		//Display part
@@ -1501,7 +1504,7 @@ int main(int argc, char * argv[]) {
                 exit(0);
             }
             Global.window_width  = std::stoi(argv[1]);
-            return 2;
+            return 1;
         }
     ));
     flags.push_back(Flag(
@@ -1518,7 +1521,7 @@ int main(int argc, char * argv[]) {
     ));
     flags.push_back(Flag(
         {"-fps"},
-        "set psf for game window. Expect one int parameter: fps count",
+        "set fps for game window. Expect one int parameter: fps count",
         [](const char * const * argv, size_t left) -> size_t {
             if (left < 1) {
                 printf("flag [%s] expected one parameter", argv[0]);
@@ -1534,7 +1537,8 @@ int main(int argc, char * argv[]) {
     Global.createWindow(sf::Style::Close);
 	Drawer.target = &Global.window;
 	Mouse.window  = &Global.window;
-	CurrentView.reset(&Global.window, Global.window_width, Global.window_height);
+	WorldView.reset(&Global.window, Global.window_width, Global.window_height);
+	GuiView.reset(&Global.window, Global.window_width, Global.window_height);
 
 	Textures.load();
 
