@@ -182,8 +182,8 @@ struct ClassType {
 	ClassType(const char * p) : ptr(p) {}
 	operator const char * () const { return ptr;}
 	ClassType & operator = (const char * p) { ptr = p; return *this;}
-	bool operator == (const ClassType & type) { return ptr == type.ptr;};
-	bool operator != (const ClassType & type) { return ptr != type.ptr;};
+	bool operator == (const ClassType & type) const { return ptr == type.ptr;};
+	bool operator != (const ClassType & type) const { return ptr != type.ptr;};
 };
 
 ClassType param = ClassType::Null;
@@ -1034,7 +1034,7 @@ public:
 		if (active && !timeout) {
 			for (size_t i = 0; i < AStack.action_set.length; i++) {
 				Basic * ptr = AStack.action_set[i];
-				if (( ptr->type == target  || ptr == target_object) &&
+				if (( target == ptr->type || ptr == target_object) &&
 					(_checkCenterCase(ptr) || _checkIntersectCase(ptr))
 					) {
 					if (teleportForm == TeleportForm::absolute)
