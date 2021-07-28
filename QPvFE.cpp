@@ -1,4 +1,5 @@
 #include "UseFull/SFMLUp/View.hpp"
+#include "UseFull/SFMLUp/GUI/FocusTracker.hpp"
 #include <queue>
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
@@ -29,6 +30,8 @@
 #include <UseFull/SFMLUp/GUI/Frame.hpp>
 #include <UseFull/SFMLUp/GUI/FocusTracker.hpp>
 #include <UseFull/SFMLUp/GUI/Button.hpp>
+
+#include "SourceCode/Textures.hpp"
 
 using namespace sfup;
 using namespace sfup::gui;
@@ -93,74 +96,6 @@ class Basic;
 
 bool show_debug = false;
 
-struct TexturesClass {
-public:
-
-	/*
-		TODO: сделать бинарное дерево соответствий
-			строка -> текстура
-	*/
-
-	/*
-
-	//Нужен метод
-	//Type & Array::newObjectPlace()
-	//  если нужно - увеличить память, после вернуть ссылку на новую запись
-
-	Array<sf::Texture> textures;
-	Array<sf::String> paths;
-	Array<sf::Image> images;
-
-	void addRecord(const sf::String & string) {
-		paths.addCopy(string);
-
-		Image & image = images.newObjectPlace();
-		image = Image();
-		image.loadFromFile(string);
-
-		Texture & texture = textures.newObjectPlace();
-		texture = Texture();
-		texture.loadFromImage(image);
-	}
-
-	void recursiveTexuresFind(const char * path) {
-		RecFileFinder rff = RecFileFinder(path);
-		while (rff.exist) {
-			RecFileFinderObject object = rff.getNextObject();
-			if (strcmp(object.afterdot, "png") == 0)
-				addRecord(sf::String(object.path_relative))
-		}
-	}
-
-	Texture getTextureByPath(const char * path) {
-
-	}
-
-	*/
-
-	Ras<sf::Texture> set;
-	Ras<sf::String> paths;
-	Ras<sf::Image> images;
-
-	void load() {
-        paths.add(new sf::String("source/void.png"));
-		paths.add(new sf::String("source/robot-open.png"));
-		paths.add(new sf::String("source/robot-closed.png"));
-
-		for (size_t i = 0; i < paths.length; i++) {
-			std::cout << paths[i]->toAnsiString() << '\n';
-			sf::Texture * texture = new sf::Texture();
-			sf::Image * image = new sf::Image();
-			image->loadFromFile(*(paths[i]));
-			texture->loadFromImage(*image);
-			set.add(texture);
-			images.add(image);
-		}
-	}
-
-}
-Textures;
-
 struct ClassType {
 
 	const char * ptr = nullptr;
@@ -211,7 +146,7 @@ public:
 
 	XY distance = {0, 0};
 
-	sf::Texture texture;
+	sf::Texture * texture;
 	sf::Sprite sprite;
 
 	unsigned short frame_int = 0;
@@ -221,18 +156,17 @@ public:
 
 	RasRec<Basic> * ras_record;
 	Basic()
-        : size({0, 0})
+		: size({0, 0})
         , ras_record(nullptr)
 	{}
 	Basic(const Codir<2> & _codir)
-        : codir(_codir.left_up + XY{EPS, EPS}, _codir.right_down - XY{EPS, EPS})
+		: codir(_codir.left_up + XY{EPS, EPS}, _codir.right_down - XY{EPS, EPS})
         , center(_codir.center())
         , size(_codir.size())
         , ras_record(nullptr)
     {}
 
 	virtual void addDefault() {
-
 	}
 
 	virtual void moveRelative(const XY & delta) {
@@ -241,8 +175,8 @@ public:
 	}
 	void setImageString(int i) {
 		image_int = i;
-		texture = sf::Texture(*(Textures.set[i]));
-		sprite.setTexture(texture);
+		texture = Textures::set[i];
+		sprite.setTexture(*texture);
 		sprite.setTextureRect(sf::IntRect(0, 0, size[0], size[1]));
 	}
 
@@ -643,9 +577,9 @@ public:
 	size_t action_i = 0, action_win_i = 0;
 
 	ActionStack()
-	    : action_count(0)
-	    , draw_count(0)
-    {
+		: action_count(0)
+		, draw_count(0)
+	{
 		action_set.current = &action_i;
 		action_win_set.current = &action_win_i;
 	}
@@ -658,7 +592,7 @@ public:
 		}
 	}
 	void stepAction() {
-	    Mouse.getPosition();
+		Mouse.getPosition();
 
 		action_count = 0;
 		for (action_i = 0; action_i < action_set.length; action_i++) {
@@ -668,8 +602,8 @@ public:
 
 	}
 	void stepActionWin() {
-        Mouse.getPosition();
-        FocusTracker::nextTurn();
+		Mouse.getPosition();
+		FocusTracker::nextTurn();
 
 		for (action_win_i = 0; action_win_i < action_win_set.length; action_win_i++) {
 			action_win_set[action_win_i]->action();
@@ -1377,11 +1311,11 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		}
 
 		if (Event.KeyPressed[sf::Keyboard::B])
-            debug = !debug;
+			debug = !debug;
 
 		//Action processor
 		if (!pause) AStack.stepAction();
-        AStack.stepActionWin();
+		AStack.stepActionWin();
 
 		WorldView.update();
 
@@ -1540,7 +1474,9 @@ int main(int argc, char * argv[]) {
 	WorldView.reset(&Global.window, Global.window_width, Global.window_height);
 	GuiView.reset(&Global.window, Global.window_width, Global.window_height);
 
-	Textures.load();
+	Textures::load("source/void.png");
+	Textures::load("source/robot-open.png");
+	Textures::load("source/robot-closed.png");
 
 	Fonts.load("source/verdana.ttf", "verdana");
 	Fonts.load("ubuntumono/UbuntuMono-R.ttf" , "UbuntuMono-R" );
