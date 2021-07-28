@@ -1,5 +1,5 @@
-#ifndef FENGINE_SC_TexturesHandler
-#define FENGINE_SC_TexturesHandler
+#ifndef FENGINE_SC_Textures
+#define FENGINE_SC_Textures
 
 #include <UseFull/Templates/Ras.hpp>
 #include <SFML/Graphics.hpp>

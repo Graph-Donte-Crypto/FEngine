@@ -1,5 +1,5 @@
-#include "UseFull/SFMLUp/View.hpp"
-#include "UseFull/SFMLUp/GUI/FocusTracker.hpp"
+#include "UseFull/Utils/StdDiagnosticIgnore.hpp"
+
 #include <queue>
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
@@ -11,9 +11,15 @@
 #include <functional>
 #include <chrono>
 #include <thread>
-
 #include <stdlib.h>
 #include <cctype>
+
+#include "UseFull/Utils/StdDiagnosticIgnoreEnd.hpp"
+
+#include <UseFull/SFMLUp/View.hpp>
+#include <UseFull/SFMLUp/GUI/FocusTracker.hpp>
+
+
 
 #include <UseFull/Math/Vector.hpp>
 #include <UseFull/Math/Intersect.hpp>
@@ -32,6 +38,7 @@
 #include <UseFull/SFMLUp/GUI/Button.hpp>
 
 #include "SourceCode/Textures.hpp"
+#include "SourceCode/ClassType.hpp"
 
 using namespace sfup;
 using namespace sfup::gui;
@@ -56,7 +63,7 @@ struct GlobalStruct {
 
 	void calcFps() {
 		current_time = clock.restart().asSeconds();
-        current_fps = (double)1.0 / current_time;
+		current_fps = (double)1.0 / current_time;
 	}
 
 	void createWindow(size_t mode) {
@@ -95,33 +102,6 @@ class Basic;
 #define EPS 0.001
 
 bool show_debug = false;
-
-struct ClassType {
-
-	const char * ptr = nullptr;
-
-	#define Type(type) type = #type
-
-	static constexpr const char
-		* Type(Null),
-		* Type(Basic),
-		* Type(Entity),
-		* Type(Block),
-		* Type(BlockTeleporter),
-		* Type(Player),
-		* Type(NetworkPlayer)
-		;
-
-	#undef Type
-
-	ClassType(const char * p) : ptr(p) {}
-	operator const char * () const { return ptr;}
-	ClassType & operator = (const char * p) { ptr = p; return *this;}
-	bool operator == (const ClassType & type) const { return ptr == type.ptr;};
-	bool operator != (const ClassType & type) const { return ptr != type.ptr;};
-};
-
-ClassType param = ClassType::Null;
 
 class Basic {
 public:
