@@ -1,5 +1,7 @@
+#include "UseFull/Math/Intersect.hpp"
 #include "UseFull/Utils/StdDiagnosticIgnore.hpp"
 
+#include <SFML/Graphics/Color.hpp>
 #include <queue>
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
@@ -81,16 +83,6 @@ struct GlobalStruct {
     {
 		//createWindow(sf::Style::Fullscreen);
 		//createWindow(sf::Style::Close);
-	}
-
-	bool checkIntersect2Codir(const Codir<2> & a, const Codir<2> & b) {
-
-#define EPS 0.001
-		bool fline13 = ( (a.left_up[0] < b.right_down[0] + EPS) && (a.left_up[0] + EPS > b.left_up[0] || a.right_down[0] + EPS > b.right_down[0]) ) || ( (b.left_up[0] < a.right_down[0] + EPS) && (a.left_up[0] < b.left_up[0] + EPS || a.right_down[0] < b.right_down[0] + EPS) );
-		bool fline24 = ( (a.left_up[1] < b.right_down[1] + EPS) && (a.left_up[1] + EPS > b.left_up[1] || a.right_down[1] + EPS > b.right_down[1]) ) || ( (b.left_up[1] < a.right_down[1] + EPS) && (a.left_up[1] < b.left_up[1] + EPS || a.right_down[1] < b.right_down[1] + EPS) );
-#undef EPS
-
-		return fline24 && fline13;
 	}
 }
 Global;
@@ -226,7 +218,7 @@ public:
 	size_t bisection_iteration_special = 16;
 
 	bool ScI2B(const XY & xy, const Basic & o) {
-		return Global.checkIntersect2Codir(codir + xy,	o.codir);
+		return math::checkIntersectCodirWithCodir(codir + xy, o.codir, EPS);
 	}
 
 	std::pair<Basic *, Basic *> firstCollision(const XY dxy, const Ras<Basic> & set, size_t sens) {
@@ -799,9 +791,10 @@ public:
 		if (folded) {
 			bool try_to_open = true;
 			for (size_t i = 0; i < AStack.action_set.length; i++) {
-				bool intersect = Global.checkIntersect2Codir(
+				bool intersect = math::checkIntersectCodirWithCodir(
 					Codir<2>(codir.right_down - size_normal + 2 * XY{EPS, EPS}, codir.right_down),
-					AStack.action_set[i]->codir
+					AStack.action_set[i]->codir,
+					EPS
 				);
 				if (intersect && AStack.action_set[i] != this) {
 					try_to_open = false;
@@ -874,22 +867,22 @@ public:
 
 
 	Block()
-        : Basic()
-    {
-        type = ClassType::Block;
-        inertional = false;
-        mass = 10;
-    }
+		: Basic()
+	{
+		type = ClassType::Block;
+		inertional = false;
+		mass = 10;
+	}
 
 	Block(const Codir<2> & codir)
-        : Basic(codir)
-        , left_down({codir.left_up[0], codir.right_down[1]})
-        , right_up({codir.right_down[0], codir.left_up[1]})
-    {
-        mass = 10;
-        type = ClassType::Block;
-        inertional = false;
-    }
+		: Basic(codir)
+		, left_down({codir.left_up[0], codir.right_down[1]})
+		, right_up({codir.right_down[0], codir.left_up[1]})
+	{
+		mass = 10;
+		type = ClassType::Block;
+		inertional = false;
+	}
 
 	void drawSelf() {
 		Drawer.drawCodirFilled(codir, sf::Color::White, sf::Color::Black);
@@ -940,7 +933,7 @@ public:
 	bool _checkIntersectCase(const Basic * ptr) {
 		return
 			teleportType == TeleportType::intersect &&
-			Global.checkIntersect2Codir(codir_teleport, ptr->codir);
+			math::checkIntersectCodirWithCodir(codir_teleport, ptr->codir, EPS);
 	}
 
 	int action() override {
@@ -986,16 +979,16 @@ public:
 	XY moveble_center = XY{0, 0};
 
 	Window(const Codir<2> & codir)
-        : BaseGui(codir)
-    {
+	: BaseGui(codir)
+	{
 		FocusTracker::codir_focus = Codir<2>({0, 0}, {codir.size()[0], ctrlm_paddind});
+		color_background = sf::Color::Black;
+		color_outline = sf::Color::White;
 	}
 	~Window() {
 		elements.flushHard();
 	}
 	void drawSelf() override {
-
-		color_background = sf::Color(255, 0, 0, 255);
 
 		BaseGui::drawSelf();
 
@@ -1009,7 +1002,7 @@ public:
 		sf::Text text("", *Fonts.getByName("UbuntuMono-R").valueOr(&temp_font), 14);
 		text.setPosition(0, 0);
 		text.setString("Main Menu");
-		text.setFillColor(sf::Color::Black);
+		text.setFillColor(color_outline);
 
 		this->draw(text);
 
@@ -1271,6 +1264,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 			Ras<BaseGui> * ras = main_window->ras_record->storage;
 			main_window->removeParent();
 			exit_window->addParent(*ras);
+			exit_window->moveRelative(main_window->focus_offset + XY({20, 0}) - exit_window->focus_offset);
 		};
 		main_window->addChild(exit);
 
@@ -1300,7 +1294,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		WorldView.update();
 
 		//Clear screen
-		window.clear(sf::Color::Green);
+		window.clear(sf::Color::Black);
 
 		//Draw Processor
 		WorldView.use();
