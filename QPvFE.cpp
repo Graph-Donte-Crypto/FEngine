@@ -1,4 +1,5 @@
 #include "UseFull/Math/Intersect.hpp"
+#include "UseFull/SFMLUp/View.hpp"
 #include "UseFull/Utils/StdDiagnosticIgnore.hpp"
 
 #include <SFML/Graphics/Color.hpp>
@@ -41,51 +42,13 @@
 
 #include "SourceCode/Textures.hpp"
 #include "SourceCode/ClassType.hpp"
+#include "SourceCode/GameWindow.hpp"
 
 using namespace sfup;
 using namespace sfup::gui;
 using namespace uft;
 
 bool debug = false;
-
-struct GlobalStruct {
-	const char * window_name = "QP version FE 12";
-	sf::RenderWindow window;
-
-	size_t limit_fps = 60;
-
-	sf::Clock clock;
-	double current_time;
-	double current_fps;
-
-	size_t window_width = 800;
-	size_t window_height = 600;
-
-	size_t video_mode = sf::Style::Close;
-
-	void calcFps() {
-		current_time = clock.restart().asSeconds();
-		current_fps = (double)1.0 / current_time;
-	}
-
-	void createWindow(size_t mode) {
-		window.create(sf::VideoMode(window_width, window_height), window_name, mode);
-		window.setFramerateLimit(limit_fps);
-	}
-
-	void loadWindowSettings() {
-
-	}
-
-	GlobalStruct()
-        : current_time(0)
-        , current_fps(0)
-    {
-		//createWindow(sf::Style::Fullscreen);
-		//createWindow(sf::Style::Close);
-	}
-}
-Global;
 
 //-lWs2_32 -liphlpapi
 
@@ -204,7 +167,7 @@ public:
 	virtual int action() { return 0; }
 	virtual int draw() {
 		Drawer.drawCodir(codir, sf::Color::White);
-		Global.window.draw(sprite);
+		GameWindow::window.draw(sprite);
 		return 1;
 	}
 
@@ -599,7 +562,7 @@ public:
 	void stepDrawWin() {
 		for (size_t i = 0; i < action_win_set.length; i++) {
 			action_win_set[i]->drawSelf();
-			action_win_set[i]->drawTo(Global.window);
+			action_win_set[i]->drawTo(GameWindow::window);
 		}
 	}
 }
@@ -722,7 +685,7 @@ public:
 
 	int draw() override {
 		Drawer.drawCodir(codir, sf::Color::White);
-		Global.window.draw(sprite);
+		GameWindow::window.draw(sprite);
 		if (show_debug) drawAllInfo();
 		return 1;
 	}
@@ -842,7 +805,7 @@ public:
 	}
 
 	int draw() override {
-		Global.window.draw(sprite);
+		GameWindow::window.draw(sprite);
 
 		if (show_debug) drawAllInfo();
 
@@ -1094,8 +1057,8 @@ bool mainLoop(MainLoopType loopType) {
 
 	Entity * entity = nullptr;
 
-	sf::RenderWindow & window    = Global.window;
-	size_t           & limit_fps = Global.limit_fps;
+	sf::RenderWindow & window    = GameWindow::window;
+	size_t           & limit_fps = GameWindow::limit_fps;
 
 	while (window.isOpen()) {
 		//EventKeeper processor
@@ -1271,7 +1234,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		state.main_window = main_window;
 	}
 
-	sf::RenderWindow & window = Global.window;
+	sf::RenderWindow & window = GameWindow::window;
 
 	Button * button = (Button *) state.main_window->getByName("single_player").valueOr(nullptr);
 
@@ -1310,143 +1273,148 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 }
 
 struct Flag {
-    std::vector<const char *> name_variants;
-    const char * desc = nullptr;
-    size_t (*value_func)(const char * const *, size_t) = nullptr;
-    void   (*empty_func)(             ) = nullptr;
-    Flag(std::initializer_list<const char *> list, const char * _desc, size_t (*_value_func)(const char * const *, size_t))
-        : desc(_desc)
-        , value_func(_value_func)
-        , empty_func(nullptr)
-    {
-        name_variants.insert(name_variants.end(), list.begin(), list.end());
-    }
-    Flag(std::initializer_list<const char *> list, const char * _desc, void (*_empty_func)())
-        : desc(_desc)
-        , value_func(nullptr)
-        , empty_func(_empty_func)
-    {
-        name_variants.insert(name_variants.end(), list.begin(), list.end());
-    }
-    Flag()
-        : desc(nullptr)
-        , value_func(nullptr)
-        , empty_func(nullptr)
-    {}
+	std::vector<const char *> name_variants;
+	const char * desc = nullptr;
+	size_t (*value_func)(const char * const *, size_t) = nullptr;
+	void   (*empty_func)(             ) = nullptr;
+	Flag(std::initializer_list<const char *> list, const char * _desc, size_t (*_value_func)(const char * const *, size_t))
+		: desc(_desc)
+		, value_func(_value_func)
+		, empty_func(nullptr)
+	{
+		name_variants.insert(name_variants.end(), list.begin(), list.end());
+	}
+	Flag(std::initializer_list<const char *> list, const char * _desc, void (*_empty_func)())
+		: desc(_desc)
+		, value_func(nullptr)
+		, empty_func(_empty_func)
+	{
+		name_variants.insert(name_variants.end(), list.begin(), list.end());
+	}
+	Flag()
+		: desc(nullptr)
+		, value_func(nullptr)
+		, empty_func(nullptr)
+	{}
 
-    bool is(const char * value) {
-        for (size_t i = 0; i < name_variants.size(); i++)
-            if (strcmp(name_variants[i], value) == 0) return true;
-        return false;
-    }
+	bool is(const char * value) {
+		for (size_t i = 0; i < name_variants.size(); i++)
+			if (strcmp(name_variants[i], value) == 0) return true;
+		return false;
+	}
 
-    std::string getNameVariants() {
-        if (name_variants.size() > 0) {
-            std::string first = "[" + std::string(name_variants[0]) + "]";
-            return utils::GetStream<const char *>(name_variants)
-                .Ignore(1)
-                .Reduce<std::string>([](auto p, auto x){ return p + " | [" + x + "]";}, first);
-        }
-        else return "";
-    }
+	std::string getNameVariants() {
+		if (name_variants.size() > 0) {
+			std::string first = "[" + std::string(name_variants[0]) + "]";
+			return utils::GetStream<const char *>(name_variants)
+				.Ignore(1)
+				.Reduce<std::string>([](auto p, auto x){ return p + " | [" + x + "]";}, first);
+		}
+		else return "";
+	}
 
-    size_t invoke(const char * const * argv, size_t left) {
-        if (value_func) return value_func(argv, left);
-        if (empty_func) empty_func();
-        return 0;
-    }
+	size_t invoke(const char * const * argv, size_t left) {
+		if (value_func) return value_func(argv, left);
+		if (empty_func) empty_func();
+		return 0;
+	}
 };
 
 struct FlagParser {
-    size_t argc;
-    char * const * argv;
-    std::vector<Flag> flags;
+	size_t argc;
+	char * const * argv;
+	std::vector<Flag> flags;
 
-    FlagParser(size_t _argc, char * const * _argv)
-        : argc(_argc)
-        , argv(_argv)
-    {}
+	FlagParser(size_t _argc, char * const * _argv)
+		: argc(_argc)
+		, argv(_argv)
+	{}
 
-    void execute() {
-        for (size_t i = 1; i < argc; i++) {
-            bool is = false;
-            for (size_t j = 0; j < flags.size(); j++) {
-                if (flags[j].is(argv[i])) {
-                    i += flags[j].invoke(argv + i, argc - i - 1);
-                    is = true;
-                    break;
-                }
-            }
-            if (!is) printf("flag [%s] unresolved\n", argv[i]);
-        }
-    }
+	void execute() {
+		for (size_t i = 1; i < argc; i++) {
+			bool is = false;
+			for (size_t j = 0; j < flags.size(); j++) {
+				if (flags[j].is(argv[i])) {
+					i += flags[j].invoke(argv + i, argc - i - 1);
+					is = true;
+					break;
+				}
+			}
+			if (!is) printf("flag [%s] unresolved\n", argv[i]);
+		}
+	}
+
+	void add(const Flag & flag) {
+		flags.push_back(flag);
+	}
 }
 * FlagParserAutoHelpSource = nullptr;
 
 void FlagParserAutoHelp() {
-    FlagParser & p = *FlagParserAutoHelpSource;
+	FlagParser & p = *FlagParserAutoHelpSource;
 
-    utils::GetStream<Flag>(p.flags)
-        .ForAll([](Flag & flag) { printf("%s => %s\n", flag.getNameVariants().c_str(), flag.desc); })
-    ;
-    exit(0);
+	utils::GetStream<Flag>(p.flags)
+		.ForAll([](Flag & flag) { printf("%s => %s\n", flag.getNameVariants().c_str(), flag.desc); })
+	;
+	exit(0);
 }
 
 int main(int argc, char * argv[]) {
 
-    FlagParser parser(argc, argv);
-    FlagParserAutoHelpSource = &parser;
+	FlagParser parser(argc, argv);
+	FlagParserAutoHelpSource = &parser;
 
-    auto & flags = parser.flags;
-    flags.push_back(Flag(
-        {"-help", "--help", "-h", "--h", "?", "-?", "help"},
-        "show all flags and it's descriptions",
-        FlagParserAutoHelp
-    ));
-    flags.push_back(Flag(
-        {"-width"},
-        "set game window width. Expect one int parameter: width",
-        [](const char * const * argv, size_t left) -> size_t {
-            if (left < 1) {
-                printf("flag [%s] expected one parameter", argv[0]);
-                exit(0);
-            }
-            Global.window_width  = std::stoi(argv[1]);
-            return 1;
-        }
-    ));
-    flags.push_back(Flag(
-        {"-height"},
-        "set game window height. Expect one int parameter: height",
-        [](const char * const * argv, size_t left) -> size_t {
-            if (left < 1) {
-                printf("flag [%s] expected one parameter", argv[0]);
-                exit(0);
-            }
-            Global.window_height = std::stoi(argv[1]);
-            return 1;
-        }
-    ));
-    flags.push_back(Flag(
-        {"-fps"},
-        "set fps for game window. Expect one int parameter: fps count",
-        [](const char * const * argv, size_t left) -> size_t {
-            if (left < 1) {
-                printf("flag [%s] expected one parameter", argv[0]);
-                exit(0);
-            }
-            Global.limit_fps = std::stoi(argv[1]);
-            return 1;
-        }
-    ));
+	parser.add(Flag(
+		{"-help", "--help", "-h", "--h", "?", "-?", "help"},
+		"show all flags and it's descriptions",
+		FlagParserAutoHelp
+	));
+	parser.add(Flag(
+		{"-width"},
+		"set game window width. Expect one int parameter: width",
+		[](const char * const * argv, size_t left) -> size_t {
+			if (left < 1) {
+				printf("flag [%s] expected one parameter", argv[0]);
+				exit(0);
+			}
+			GameWindow::width  = std::stoi(argv[1]);
+			return 1;
+		}
+	));
+	parser.add(Flag(
+		{"-height"},
+		"set game window height. Expect one int parameter: height",
+		[](const char * const * argv, size_t left) -> size_t {
+			if (left < 1) {
+				printf("flag [%s] expected one parameter", argv[0]);
+				exit(0);
+			}
+			GameWindow::height = std::stoi(argv[1]);
+			return 1;
+		}
+	));
+	parser.add(Flag(
+		{"-fps"},
+		"set fps for game window. Expect one int parameter: fps count",
+		[](const char * const * argv, size_t left) -> size_t {
+			if (left < 1) {
+				printf("flag [%s] expected one parameter", argv[0]);
+				exit(0);
+			}
+			GameWindow::limit_fps = std::stoi(argv[1]);
+			return 1;
+		}
+	));
 
-    parser.execute();
+	parser.execute();
 
-    Global.createWindow(sf::Style::Close);
-	Drawer.target = &Global.window;
-	Mouse.window  = &Global.window;
-	WorldView.reset(&Global.window, Global.window_width, Global.window_height);
-	GuiView.reset(&Global.window, Global.window_width, Global.window_height);
+	GameWindow::create(sf::Style::Close);
+
+	Drawer.target = &GameWindow::window;
+	Mouse.window  = &GameWindow::window;
+
+	GameWindow::resetView(WorldView);
+	GameWindow::resetView(GuiView);
 
 	Textures::load("source/void.png");
 	Textures::load("source/robot-open.png");
