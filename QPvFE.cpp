@@ -1,8 +1,11 @@
 #include "UseFull/Math/Intersect.hpp"
 #include "UseFull/SFMLUp/View.hpp"
+#include "UseFull/Math/Shape.hpp"
+#include "UseFull/SFMLUp/GUI/Label.hpp"
 #include "UseFull/Utils/StdDiagnosticIgnore.hpp"
 
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/System/String.hpp>
 #include <queue>
 #include <stdio.h>
 #include <SFML/Graphics.hpp>
@@ -166,7 +169,7 @@ public:
 
 	virtual int action() { return 0; }
 	virtual int draw() {
-		Drawer.drawCodir(codir, sf::Color::White);
+		Drawer.drawCodir(codir, sf::Color::White, sf::Color::Transparent);
 		GameWindow::window.draw(sprite);
 		return 1;
 	}
@@ -684,7 +687,7 @@ public:
 	}
 
 	int draw() override {
-		Drawer.drawCodir(codir, sf::Color::White);
+		Drawer.drawCodir(codir, sf::Color::White, sf::Color::Transparent);
 		GameWindow::window.draw(sprite);
 		if (show_debug) drawAllInfo();
 		return 1;
@@ -848,7 +851,7 @@ public:
 	}
 
 	void drawSelf() {
-		Drawer.drawCodirFilled(codir, sf::Color::White, sf::Color::Black);
+		Drawer.drawCodir(codir, sf::Color::White, sf::Color::Black);
 		if (show_debug) drawAllInfo();
 	}
 	int draw() override {
@@ -918,14 +921,14 @@ public:
 		return 0;
 	}
 	void drawTeleportZone() {
-		Drawer.drawCodir(codir_teleport, sf::Color::Red);
+		Drawer.drawCodir(codir_teleport, sf::Color::Red, sf::Color::Transparent);
 		XY temp = codir_teleport.center();
 		if (teleportForm == TeleportForm::absolute) {
 			Drawer.drawLine(Line<2>(temp, delta), sf::Color::Green);
 		}
 		else {
 			Drawer.drawLine(Line<2>(temp, temp + delta), sf::Color::Red);
-			Drawer.drawCodir(codir_teleport + delta, sf::Color::Green);
+			Drawer.drawCodir(codir_teleport + delta, sf::Color::Green, sf::Color::Transparent);
 		}
 	}
 	int draw() override {
@@ -940,13 +943,17 @@ public:
 	//ctrlm -> control_menu
 	double ctrlm_paddind = 20;
 	XY moveble_center = XY{0, 0};
+	Label label;
 
 	Window(const Codir<2> & codir)
 	: BaseGui(codir)
+	, label(Codir<2>({0, 0}, {codir.size()[0], ctrlm_paddind}))
 	{
 		FocusTracker::codir_focus = Codir<2>({0, 0}, {codir.size()[0], ctrlm_paddind});
 		color_background = sf::Color::Black;
 		color_outline = sf::Color::White;
+		label.color_outline = sf::Color::Transparent;
+		label.setTextColor(sf::Color::White);
 	}
 	~Window() {
 		elements.flushHard();
@@ -961,13 +968,8 @@ public:
 			color_outline
 		);
 
-		sf::Font temp_font;
-		sf::Text text("", *Fonts.getByName("UbuntuMono-R").valueOr(&temp_font), 14);
-		text.setPosition(0, 0);
-		text.setString("Main Menu");
-		text.setFillColor(color_outline);
-
-		this->draw(text);
+		label.drawSelf();
+		label.drawTo(*this);
 
 		drawSelfForElements();
 	}
@@ -988,6 +990,7 @@ public:
 	}
 	void moveRelative(const XY & delta) override {
 		BaseGui::moveRelative(delta);
+		//label.moveRelative(delta);
 	}
 	void actionPressing() override {
 		moveRelative(moveble_center - codir.center() + Mouse.inWorld);
@@ -1060,6 +1063,10 @@ bool mainLoop(MainLoopType loopType) {
 	sf::RenderWindow & window    = GameWindow::window;
 	size_t           & limit_fps = GameWindow::limit_fps;
 
+	Label label(Codir<2>({0, 0}, {200, 200}));
+	label.setTextColor(sf::Color::White);
+	label.setText("Hello label");
+
 	while (window.isOpen()) {
 		//EventKeeper processor
 		Event.flush();
@@ -1124,6 +1131,9 @@ bool mainLoop(MainLoopType loopType) {
 		fps_stream.str("");
 		fps_stream.clear();
 
+		label.drawSelf();
+		label.drawTo(window);
+
 		//Display part
 		window.display();
 	}
@@ -1149,6 +1159,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 	if (type == UbermenuType::main) {
 		Window * main_window = new Window(Codir<2>({0, 0}, {200, 400}));
 		main_window->unique_name = "main window";
+		main_window->label.setText("Main window");
 		main_window->moveRelative({300, 100});
 		main_window->addParent(AStack.action_win_set);
 
@@ -1156,8 +1167,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 
 		Button * single_player = new Button(Codir<2>({0, 0}, {150, 20}));
 		single_player->unique_name = "single_player";
-		single_player->text.setString("Single Player Game");
-		single_player->centerTheText();
+		single_player->label.setText("Single Player Game");
 		//single_player->moveRelative(main_window->codir.left_up);
 		single_player->moveRelative({25, 40});
 		single_player->lambda = [&state] () mutable {
@@ -1174,8 +1184,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 
 		Button * setting = new Button(Codir<2>({0, 0}, {150, 20}));
 		setting->unique_name = "settings";
-		setting->text.setString("Setting");
-		setting->centerTheText();
+		setting->label.setText("Setting");
 		//setting->moveRelative(main_window->codir.left_up);
 		setting->moveRelative({25, 80});
 		setting->lambda = []() {
@@ -1188,12 +1197,12 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 
 		Window * exit_window = new Window(Codir<2>({0, 0}, {150, 120}));
 		exit_window->unique_name = "exit_window";
+		exit_window->label.setText("Exit?");
 		exit_window->moveRelative({300, 100});
 
 		Button * exit_button_yes = new Button(Codir<2>({0, 0}, {100, 20}));
 		exit_button_yes->unique_name = "exit button yes";
-		exit_button_yes->text.setString("Yes");
-		exit_button_yes->centerTheText();
+		exit_button_yes->label.setText("Yes");
 		//exit_button_yes->moveRelative(exit_window->codir.left_up);
 		exit_button_yes->moveRelative({20, 40});
 		exit_button_yes->lambda = []() {
@@ -1203,8 +1212,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 
 		Button * exit_button_no = new Button(Codir<2>({0, 0}, {100, 20}));
 		exit_button_no->unique_name = "exit button no";
-		exit_button_no->text.setString("Back");
-		exit_button_no->centerTheText();
+		exit_button_no->label.setText("Back");
 		//exit_button_no->moveRelative(exit_window->codir.left_up);
 		exit_button_no->moveRelative({20, 80});
 		exit_button_no->lambda = [main_window, exit_window]() {
@@ -1218,8 +1226,7 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 
 		Button * exit = new Button(Codir<2>({0, 0}, {150, 20}));
 		exit->unique_name = "exit";
-		exit->text.setString("Exit");
-		exit->centerTheText();
+		exit->label.setText("Exit");
 		//exit->moveRelative(main_window->codir.left_up);
 		exit->moveRelative({25, 120});
 		//вылетает потому что main_window и exit_window уже не существует
