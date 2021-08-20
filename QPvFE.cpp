@@ -47,7 +47,7 @@ void initLevel1() {
 	p1 = new Player(Codir<2>({150, 100}, {200, 200}));
 	p1->addDefault();
 	p1->moveRelative({350, 0});
-	p1->setImageString(1);
+	p1->setImage(p1->texture_unfolded);
 
 	Block * block;
 	block = new Block(Codir<2>({100, 201}, {500, 300}));
@@ -365,15 +365,18 @@ int main(int argc, char * argv[]) {
 	GameWindow::resetView(WorldView);
 	GameWindow::resetView(GuiView);
 
-	Textures::load("source/void.png");
-	Textures::load("source/robot-open.png");
-	Textures::load("source/robot-closed.png");
+	//Textures::load("source/void.png");
 
-	Fonts.load("source/verdana.ttf", "verdana");
-	Fonts.load("ubuntumono/UbuntuMono-R.ttf" , "UbuntuMono-R" );
-	Fonts.load("ubuntumono/UbuntuMono-RI.ttf", "UbuntuMono-RI");
-	Fonts.load("ubuntumono/UbuntuMono-B.ttf" , "UbuntuMono-B" );
-	Fonts.load("ubuntumono/UbuntuMono-BI.ttf", "UbuntuMono-BI");
+	Basic::texture_default = Textures::load("assets/objects/Default/textures/void.png").ok();	
+
+	Player::texture_folded = Textures::load("assets/objects/Robot/textures/robot-closed.png").ok();
+	Player::texture_unfolded = Textures::load("assets/objects/Robot/textures/robot-open.png").ok();
+
+	Fonts.load("assets/fonts/verdana.ttf", "verdana");
+	Fonts.load("assets/fonts/ubuntumono/UbuntuMono-R.ttf" , "UbuntuMono-R" );
+	Fonts.load("assets/fonts/ubuntumono/UbuntuMono-RI.ttf", "UbuntuMono-RI");
+	Fonts.load("assets/fonts/ubuntumono/UbuntuMono-B.ttf" , "UbuntuMono-B" );
+	Fonts.load("assets/fonts/ubuntumono/UbuntuMono-BI.ttf", "UbuntuMono-BI");
 
 	Fonts.setFontToText("UbuntuMono-R", Drawer.text);
 

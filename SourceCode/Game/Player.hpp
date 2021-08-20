@@ -16,12 +16,13 @@ public:
 	XY size_folded, size_normal;
 	double dv_one = 0.5; //max speed = (dv_one * mu)/(1 - mu)
 
+	inline static Textures::Record * texture_folded = nullptr;
+	inline static Textures::Record * texture_unfolded = nullptr;
+
 	Player()
 		: Entity()
 		, state(State::right)
-	{
-		default_image = 1;
-	}
+	{}
 
 	Player(const Codir<2> & codir)
 		: Entity(codir)
@@ -32,7 +33,6 @@ public:
 		frame_count = 3;
 		type = ClassType::Player;
 		elastic = false;
-		default_image = 1;
 	}
 	void moveLeft() {
 		v[0] -= dv_one;
@@ -50,7 +50,7 @@ public:
 	void moveFold() {
 		if (!folded) {
 			folded = true;
-			setImageString(2);
+			setImage(texture_folded);
 			frame_count = 3;
 			size = size_folded;
 			codir.left_up = codir.right_down + (2 * XY{EPS, EPS}) - size;
@@ -75,7 +75,7 @@ public:
 			}
 			if (try_to_open) {
 				folded = false;
-				setImageString(1);
+				setImage(texture_unfolded);
 				frame_count = 3;
 				v[1] -= 3;
 

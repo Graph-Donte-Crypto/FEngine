@@ -22,7 +22,6 @@ class Basic {
 public:
 
 	int id = 0;
-	int default_image = 0;
 	ClassType type = ClassType::Basic;
 
 	Codir<2> codir = Codir<2>({0, 0}, {0, 0});
@@ -43,11 +42,12 @@ public:
 
 	XY distance = {0, 0};
 
-	sf::Texture * texture;
+	inline static Textures::Record * texture_default = nullptr;
+	Textures::Record * texture_record = nullptr;
+
 	sf::Sprite sprite;
 
 	unsigned short frame_int = 0;
-	unsigned short image_int = 0;
 
 	XY size;
 
@@ -70,15 +70,24 @@ public:
 		codir += delta;
 		center += delta;
 	}
+
+	void setImage(Textures::Record * record) {
+		texture_record = record;
+		sprite.setTexture(texture_record->texture);
+		sprite.setTextureRect(sf::IntRect(0, 0, size[0], size[1]));
+	}
+
+/*
 	void setImageString(int i) {
 		image_int = i;
 		texture = Textures::set[i];
 		sprite.setTexture(*texture);
 		sprite.setTextureRect(sf::IntRect(0, 0, size[0], size[1]));
 	}
+*/
 
 	virtual void setDefaultImage() {
-		setImageString(default_image);
+		setImage(texture_default);
 	}
 
 	virtual void textAllInfo() {

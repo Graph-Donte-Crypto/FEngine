@@ -1,6 +1,9 @@
 #ifndef FENGINE_SC_Textures
 #define FENGINE_SC_Textures
 
+#include <SFML/Graphics/Image.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/System/String.hpp>
 #include <UseFull/Templates/Ras.hpp>
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -9,83 +12,62 @@
 struct Textures {
 public:
 
-	/*
-		TODO: сделать бинарное дерево соответствий
-			строка -> текстура
-	*/
+	template <typename T>
+	struct TypeDef {
+		T value;
+		constexpr TypeDef(T value): value{value} { }
+		auto operator<=>(const TypeDef<T> &) const = default;
+		explicit operator T();
+	};
 
-	/*
+	struct TextureId : public TypeDef<unsigned int> { 
+		explicit TextureId(unsigned int value) : TypeDef<unsigned int>(value) {}
+	};
 
-	//Нужен метод
-	//Type & Array::newObjectPlace()
-	//  если нужно - увеличить память, после вернуть ссылку на новую запись
+	struct Record {
+		sf::Texture texture;
+		sf::Image image;
+		sf::String path;
 
-	Array<sf::Texture> textures;
-	Array<sf::String> paths;
-	Array<sf::Image> images;
-
-	void addRecord(const sf::String & string) {
-		paths.addCopy(string);
-
-		Image & image = images.newObjectPlace();
-		image = Image();
-		image.loadFromFile(string);
-
-		Texture & texture = textures.newObjectPlace();
-		texture = Texture();
-		texture.loadFromImage(image);
-	}
-
-	void recursiveTexuresFind(const char * path) {
-		RecFileFinder rff = RecFileFinder(path);
-		while (rff.exist) {
-			RecFileFinderObject object = rff.getNextObject();
-			if (strcmp(object.afterdot, "png") == 0)
-				addRecord(sf::String(object.path_relative))
+		Record(const char * str) {
+			path = sf::String(str);
 		}
-	}
 
-	Texture getTextureByPath(const char * path) {
+		bool load() {
+			bool success = image.loadFromFile(path);
+			if (!success) {
+				std::cout << "Error on load image [" << path.toAnsiString() << "]\n";
+				return false;
+			}
 
-	}
+			success = texture.loadFromImage(image);
+			if (!success) {
+				std::cout << "Error on load image as texture for [" << path.toAnsiString() << "]\n";
+				return false;
+			}
 
-	*/
+			std::cout << "Loaded successfully [" << path.toAnsiString() << "]\n";
 
-	inline static uft::Ras<sf::Texture> set;
-	inline static uft::Ras<sf::String> paths;
-	inline static uft::Ras<sf::Image> images;
+			return success;
 
-	static bool load(const char * str) {
-		auto rec = paths.add(new sf::String(str));
-		sf::String & sfstr = *rec->record;
-		
-		bool success = false;
-		
-		sf::Image * image = new sf::Image();
-		success = image->loadFromFile(sfstr);
+		}
+
+	};
+
+	inline static std::vector<Record *> set;
+
+	static uft::Ok<Record *> load(const char * str) {
+
+		Record * record = new Record(str);
+		bool success = record->load();
 		if (!success) {
-			std::cout << "Error on load image [" << sfstr.toAnsiString() << "]\n";
-			rec->remove();
-			delete image;
-			return false;
+			delete record; 
+			return {};
 		}
-
-		sf::Texture * texture = new sf::Texture();
-		success = texture->loadFromImage(*image);
-		if (!success) {
-			std::cout << "Error on load image as texture for [" << sfstr.toAnsiString() << "]\n";
-			rec->remove();
-			delete image;
-			delete texture;
-			return false;
+		else {
+			set.push_back(record);
+			return record;
 		}
-
-		set.add(texture);
-		images.add(image);
-
-		std::cout << "Loaded successfully [" << sfstr.toAnsiString() << "]\n";
-
-		return true;
 	}
 };
 
