@@ -19,9 +19,10 @@ struct GameWindow {
 
 	inline static size_t video_mode = sf::Style::Close;
 
-	static void calcFps() {
+	static double calcFps() {
 		current_time = clock.restart().asSeconds();
 		current_fps = (double)1.0 / current_time;
+		return current_fps;
 	}
 
 	static void create(size_t mode) {

@@ -1,6 +1,7 @@
 //Includes From std lib
 #include "UseFull/Utils/StdDiagnosticIgnore.hpp"
 
+#include <corecrt.h>
 #include <cstdlib>
 #include <thread>
 #include <chrono>
@@ -29,13 +30,9 @@ using namespace uft;
 
 //-lWs2_32 -liphlpapi
 
-class Basic;
-
 #define EPS 0.001
 
 enum class MainLoopType {server, client, resume, init};
-
-Player * p1 = nullptr;
 
 void initLevel1() {
 
@@ -44,7 +41,7 @@ void initLevel1() {
 	en2->addDefault();
 	en2->moveRelative({500,-600});
 
-	p1 = new Player(Codir<2>({150, 100}, {200, 200}));
+	Player * p1 = new Player(Codir<2>({150, 100}, {200, 200}));
 	p1->addDefault();
 	p1->moveRelative({350, 0});
 	p1->setImage(p1->texture_unfolded);
@@ -59,7 +56,7 @@ void initLevel1() {
 	BlockTeleporter * lift = new BlockTeleporter(Codir<2>({600, 800}, {700, 900}));
 
 	lift->target_object = p1;
-	lift->target = ClassType::NetworkPlayer;
+	lift->target = ClassType::Entity;
 	lift->teleportForm = BlockTeleporter::TeleportForm::absolute;
 	lift->teleportType = BlockTeleporter::TeleportType::center;
 	lift->delta = {700, -500};
@@ -76,15 +73,15 @@ void initLevel1() {
 	WorldView.followUp(p1->center);
 }
 
-bool mainLoop(MainLoopType loopType) {
-	sf::Clock clock;
-	sf::Font temp_font;
-	sf::Text text("", *Fonts.getByName("UbuntuMono-R").valueOr(&temp_font), 14);
-	text.setPosition(0, 30);
-	std::ostringstream fps_stream;
-	double currentTime = 0;
-	double fps = 0;
 
+struct GameState {
+	bool active = true;
+	bool pause = true;
+	XY current_view;
+	Window * main_window = nullptr;
+};
+
+void mainLoop(MainLoopType loopType, GameState & state) {
 	if (loopType == MainLoopType::init) initLevel1();
 
 	Entity * entity = nullptr;
@@ -92,9 +89,7 @@ bool mainLoop(MainLoopType loopType) {
 	sf::RenderWindow & window    = GameWindow::window;
 	size_t           & limit_fps = GameWindow::limit_fps;
 
-	Label label(Codir<2>({0, 0}, {200, 200}));
-	label.setTextColor(sf::Color::White);
-	label.setText("Hello label");
+	state.active = true;
 
 	while (window.isOpen()) {
 		//EventKeeper processor
@@ -133,7 +128,10 @@ bool mainLoop(MainLoopType loopType) {
 				OController.action_set._fixArray();
 			}
 		}
-		if (Event.KeyPressed[sf::Keyboard::Escape]) return true;
+		if (Event.KeyPressed[sf::Keyboard::Escape]) {
+			state.pause = true;
+			return;
+		}
 		OController.stepAction();
 
 		if (Event.KeyPressed[sf::Keyboard::F1])
@@ -147,66 +145,34 @@ bool mainLoop(MainLoopType loopType) {
 		//Draw Processor
 		WorldView.use();
 		OController.stepDraw();
+
+		WorldView.use();
 		for (size_t i = 0; i < 100; i++) Drawer.drawText(i*50, {(double)(i*50), 500});
-
-		currentTime = clock.restart().asSeconds();
-		fps = (double)1.0 / currentTime;
-
-
-		fps_stream << fps;
-		text.setString("FPS: " + fps_stream.str());
-
-		window.draw(text);
-		fps_stream.str("");
-		fps_stream.clear();
-
-		label.drawSelf();
-		label.drawTo(window);
 
 		//Display part
 		window.display();
 	}
 
-	return 0;
+	state.active = false;
+	return;
 }
 
-struct MenuState {
-	bool active = true;
-	bool pause = true;
-	XY current_view;
-	Window * main_window = nullptr;
-};
 
-enum class UbermenuType{main, ingame};
-int ubermenu(UbermenuType type, bool active, bool pause) {
-	MenuState state;
-
-	state.active = active;
-	state.pause = pause;
-	state.current_view = {400, 300};
-
-	if (type == UbermenuType::main) {
-		Window * main_window = new Window(Codir<2>({0, 0}, {200, 400}));
+void createMenu(GameState & state) {
+	Window * main_window = new Window(Codir<2>({0, 0}, {200, 400}));
 		main_window->unique_name = "main window";
 		main_window->label.setText("Main window");
 		main_window->moveRelative({300, 100});
 		main_window->addParent(OController.action_win_set);
 
 
-
 		Button * single_player = new Button(Codir<2>({0, 0}, {150, 20}));
 		single_player->unique_name = "single_player";
 		single_player->label.setText("Single Player Game");
-		//single_player->moveRelative(main_window->codir.left_up);
 		single_player->moveRelative({25, 40});
 		single_player->lambda = [&state] () mutable {
-			if (state.active) state.pause = mainLoop(MainLoopType::resume);
-			else state.pause = mainLoop(MainLoopType::init);
-			state.active = true;
-			XY current_center = GuiView.current_view.center();
-			for (size_t i = 0; i < OController.action_win_set.length; i++)
-				OController.action_win_set[i]->moveRelative(current_center - state.current_view);
-			state.current_view = current_center;
+			MainLoopType main_loop_type = state.active ? MainLoopType::resume : MainLoopType::init;
+			mainLoop(main_loop_type, state);
 		};
 		main_window->addChild(single_player);
 
@@ -214,7 +180,6 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		Button * setting = new Button(Codir<2>({0, 0}, {150, 20}));
 		setting->unique_name = "settings";
 		setting->label.setText("Setting");
-		//setting->moveRelative(main_window->codir.left_up);
 		setting->moveRelative({25, 80});
 		setting->lambda = []() {
 			std::chrono::seconds sec(1);
@@ -232,7 +197,6 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		Button * exit_button_yes = new Button(Codir<2>({0, 0}, {100, 20}));
 		exit_button_yes->unique_name = "exit button yes";
 		exit_button_yes->label.setText("Yes");
-		//exit_button_yes->moveRelative(exit_window->codir.left_up);
 		exit_button_yes->moveRelative({20, 40});
 		exit_button_yes->lambda = []() {
 			exit(1);
@@ -242,7 +206,6 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		Button * exit_button_no = new Button(Codir<2>({0, 0}, {100, 20}));
 		exit_button_no->unique_name = "exit button no";
 		exit_button_no->label.setText("Back");
-		//exit_button_no->moveRelative(exit_window->codir.left_up);
 		exit_button_no->moveRelative({20, 80});
 		exit_button_no->lambda = [main_window, exit_window]() {
 			Ras<BaseGui> * ras = exit_window->ras_record->storage;
@@ -256,7 +219,6 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		Button * exit = new Button(Codir<2>({0, 0}, {150, 20}));
 		exit->unique_name = "exit";
 		exit->label.setText("Exit");
-		//exit->moveRelative(main_window->codir.left_up);
 		exit->moveRelative({25, 120});
 		//вылетает потому что main_window и exit_window уже не существует
 		exit->lambda = [main_window, exit_window]() {
@@ -268,19 +230,31 @@ int ubermenu(UbermenuType type, bool active, bool pause) {
 		main_window->addChild(exit);
 
 		state.main_window = main_window;
+}
+
+enum class UbermenuType{main, ingame};
+int ubermenu(UbermenuType type, bool active, bool pause) {
+	GameState state;
+
+	state.active = active;
+	state.pause = pause;
+	state.current_view = {400, 300};
+
+	if (type == UbermenuType::main) {
+		createMenu(state);
 	}
 
 	sf::RenderWindow & window = GameWindow::window;
-
-	Button * button = (Button *) state.main_window->getByName("single_player").valueOr(nullptr);
 
 	while (window.isOpen()) {
 		//EventKeeper processor
 		Event.flush();
 		Event.load(window);
 		if (Event.KeyPressed[sf::Keyboard::Escape] && state.active) {
-			auto element = state.main_window->getByName("single_player");
-			if (element.isOk) element.value->actionRealized();
+			state.main_window
+				->getByName("single_player")
+				.ok("single_player name not found")
+				->actionRealized();
 		}
 
 		//Action processor
@@ -319,7 +293,7 @@ int main(int argc, char * argv[]) {
 		}
 	));
 	parser.add(Flag(
-		{"-width"},
+		{"-width", "-w"},
 		"set game window width. Expect one int parameter: width",
 		[](const char * const * argv, size_t left) -> size_t {
 			if (left < 1) {
@@ -331,7 +305,7 @@ int main(int argc, char * argv[]) {
 		}
 	));
 	parser.add(Flag(
-		{"-height"},
+		{"-height", "-h"},
 		"set game window height. Expect one int parameter: height",
 		[](const char * const * argv, size_t left) -> size_t {
 			if (left < 1) {
@@ -364,8 +338,6 @@ int main(int argc, char * argv[]) {
 
 	GameWindow::resetView(WorldView);
 	GameWindow::resetView(GuiView);
-
-	//Textures::load("source/void.png");
 
 	Basic::texture_default = Textures::load("assets/objects/Default/textures/void.png").ok();	
 

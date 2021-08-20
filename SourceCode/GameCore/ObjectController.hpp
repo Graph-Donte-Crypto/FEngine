@@ -1,6 +1,7 @@
 #ifndef FENGINE_SC_ObjectController
 #define FENGINE_SC_ObjectController
 
+#include "UseFull/SFMLUp/View.hpp"
 #include "UseFull/Templates/Ras.hpp"
 #include "UseFull/SFMLUp/GUI/BaseGui.hpp"
 #include "UseFull/SFMLUp/GUI/FocusTracker.hpp"
@@ -19,7 +20,6 @@ public:
 	size_t action_count, draw_count;
 	size_t action_i = 0, action_win_i = 0;
 	bool debug = false;
-
 
 	ObjectController()
 		: action_count(0)
@@ -62,11 +62,15 @@ public:
 		for (size_t i = 0; i < action_set.length; i++) {
 			draw_count += action_set[i]->draw();
 		}
+
+		GuiView.use();
+		sfup::Drawer.Text << "FPS: " << GameWindow::calcFps();
+		sfup::Drawer.drawText({0, 2});
 		sfup::Drawer.Text << "Count(A|D): " << action_count << " | " << draw_count;
-		sfup::Drawer.drawText({0, 20});
-		sfup::Drawer.drawText("ACTIVE: Ubuntu::Mono::Regular", {0, 40});
+		sfup::Drawer.drawText({0, 17});
+		sfup::Drawer.drawText("ACTIVE: Ubuntu::Mono::Regular", {0, 32});
 		sfup::Drawer.Text << "focus: " << sfup::gui::FocusTracker::focus << " | " << "focus on next turn: " << sfup::gui::FocusTracker::focus_next_turn;
-		sfup::Drawer.drawText({0, 60});
+		sfup::Drawer.drawText({0, 47});
 	}
 
 	void stepDrawWin() {
